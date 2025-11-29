@@ -1,0 +1,15 @@
+{
+  "name": "verification-server",
+  "version": "1.0.0",
+  "description": "Independent verification oracle for LLM Jailbreak Arena",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "db:setup": "psql $DATABASE_URL -f src/db/schema.sql"
+  },
+  "keywords": ["blockchain", "verification", "oracle"],
+  "author": "",
+  "license": "MIT"
+}
