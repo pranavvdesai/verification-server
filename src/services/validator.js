@@ -1,9 +1,5 @@
-// src/services/validator.js
 
-/**
- * Independent validation logic
- * Re-implements game win conditions WITHOUT access to real answers
- */
+
 
 const GAME_RULES = {
   1: {
@@ -34,18 +30,14 @@ const GAME_RULES = {
 };
 
 export class IndependentValidator {
-  /**
-   * Validate if response contains correct answer
-   * WITHOUT knowing what the answer is
-   */
-  async validate(attempt, commitment) {
+    async validate(attempt, commitment) {
     const rules = GAME_RULES[attempt.game_id];
     
     if (!rules) {
       throw new Error(`Unknown game_id: ${attempt.game_id}`);
     }
     
-    // Extract answer from response
+    
     const extracted = this.extractAnswer(attempt.response, rules);
     
     console.log(`🔍 Validation:`, {
@@ -56,24 +48,18 @@ export class IndependentValidator {
     
     return {
       extracted,
-      isCorrect: attempt.is_correct, // Trust game server's initial check
+      isCorrect: attempt.is_correct, 
       pattern: rules.pattern.toString(),
       gameRules: rules.name
     };
   }
   
-  /**
-   * Extract answer from LLM response using regex
-   */
-  extractAnswer(response, rules) {
+    extractAnswer(response, rules) {
     const match = response.match(rules.pattern);
     return match ? match[0] : null;
   }
   
-  /**
-   * Get game rules (for transparency)
-   */
-  getGameRules(gameId) {
+    getGameRules(gameId) {
     return GAME_RULES[gameId] || null;
   }
 }

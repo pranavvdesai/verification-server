@@ -1,4 +1,4 @@
-// src/db/pool.js
+
 
 import pg from 'pg';
 import { config } from '../config/index.js';
@@ -11,7 +11,7 @@ export function getPool() {
   if (!pool) {
     pool = new Pool({
       connectionString: config.databaseUrl,
-      max: 10, // Max connections for verification server
+      max: 10, 
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 2000,
       ssl: config.nodeEnv === 'production' ? {
@@ -34,7 +34,7 @@ export function getPool() {
   return pool;
 }
 
-// Helper function for queries
+
 export async function query(text, params = []) {
   const pool = getPool();
   const start = Date.now();
@@ -54,7 +54,7 @@ export async function query(text, params = []) {
   }
 }
 
-// Transaction helper
+
 export async function transaction(callback) {
   const pool = getPool();
   const client = await pool.connect();
@@ -73,7 +73,7 @@ export async function transaction(callback) {
   }
 }
 
-// Graceful shutdown
+
 process.on('SIGTERM', async () => {
   console.log('📴 Closing database connections...');
   if (pool) {

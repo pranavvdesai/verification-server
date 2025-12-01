@@ -1,13 +1,13 @@
-// src/db/queries.js
 
 import { query } from './pool.js';
 
-// ============= ATTEMPTS =============
+
 
 export async function getAttempt(attemptId) {
+  
   const result = await query(
-    `SELECT * FROM attempts WHERE id = $1`,
-    [attemptId]
+    'SELECT * FROM attempts WHERE id = $1',
+    [attemptId],
   );
   return result.rows[0];
 }
@@ -28,24 +28,56 @@ export async function updateAttemptVerification(attemptId, verificationData) {
       JSON.stringify(verificationData),
       verificationData.ipfsHash || null,
       verificationData.txHash || null,
-      verificationData.attestation?.signature || null
-    ]
+      verificationData.attestation?.signature || null,
+    ],
   );
   return result.rows[0];
 }
 
-// ============= GAME COMMITMENTS =============
 
-export async function getCommitment(contestId, gameId, difficulty) {
+
+export async function getCommitment(contestId, gameConfigId) {
   const result = await query(
-    `SELECT * FROM game_commitments 
-     WHERE contest_id = $1 AND game_id = $2 AND difficulty = $3`,
-    [contestId, gameId, difficulty]
+    `
+    SELECT *
+    FROM game_commitments
+    WHERE contest_id = $1
+      AND game_config_id = $2
+    `,
+    [contestId, gameConfigId],
   );
   return result.rows[0];
 }
 
-// ============= VERIFICATION LOGS =============
+
+
+export async function getParticipant(participantId) {
+  const result = await query(
+    `
+    SELECT *
+    FROM contest_participants
+    WHERE id = $1
+    `,
+    [participantId],
+  );
+  return result.rows[0];
+}
+
+
+
+export async function getGameConfig(gameConfigId) {
+  const result = await query(
+    `
+    SELECT *
+    FROM contest_game_configs
+    WHERE id = $1
+    `,
+    [gameConfigId],
+  );
+  return result.rows[0];
+}
+
+
 
 export async function logVerification(attemptId, status, data = {}) {
   const result = await query(
@@ -58,8 +90,8 @@ export async function logVerification(attemptId, status, data = {}) {
       status,
       data.ipfsHash || null,
       data.txHash || null,
-      data.errorMessage || null
-    ]
+      data.errorMessage || null,
+    ],
   );
   return result.rows[0];
 }

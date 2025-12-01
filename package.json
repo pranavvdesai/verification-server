@@ -7,9 +7,33 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
+    "generate-verifiers": "node scripts/generate-verifier.js",
     "db:setup": "psql $DATABASE_URL -f src/db/schema.sql"
   },
-  "keywords": ["blockchain", "verification", "oracle"],
+  "keywords": [
+    "blockchain",
+    "verification",
+    "oracle"
+  ],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@aztec/bb.js": "3.0.0-nightly.20251104",
+    "@ipld/dag-ucan": "^3.4.5",
+    "@noir-lang/noir_js": "1.0.0-beta.15",
+    "@ucanto/client": "^9.0.2",
+    "@ucanto/core": "^10.4.6",
+    "@ucanto/transport": "^9.2.1",
+    "@web3-storage/w3up-client": "^17.3.0",
+    "buffer": "^6.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "ethers": "^6.15.0",
+    "express": "^5.1.0",
+    "nodemon": "^3.1.11",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "strip-comments": "^2.0.1"
+  }
 }

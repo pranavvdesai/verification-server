@@ -1,4 +1,4 @@
-// src/services/blockchain.js
+
 
 import { ethers } from 'ethers';
 import { config } from '../config/index.js';
@@ -14,17 +14,17 @@ class BlockchainService {
 
   initialize() {
     try {
-      // Connect to RPC provider
+      
       this.provider = new ethers.JsonRpcProvider(config.rpcUrl);
       
       console.log(`✅ Connected to RPC: ${config.rpcUrl}`);
 
-      // Create wallet from private key
+      
       this.wallet = new ethers.Wallet(config.oraclePrivateKey, this.provider);
       
       console.log(`✅ Oracle wallet: ${this.wallet.address}`);
 
-      // Load smart contract
+      
       this.contract = new ethers.Contract(
         config.contractAddress,
         CONTRACT_ABI,
@@ -32,16 +32,25 @@ class BlockchainService {
       );
       
       console.log(`✅ Smart contract loaded: ${config.contractAddress}`);
+
+      
+      this.provider.getCode(config.contractAddress).then((code) => {
+        if (!code || code === '0x') {
+          console.error('❌ No contract code found at address:', config.contractAddress);
+          console.error('   Verify CONTRACT_ADDRESS points to a deployed contract on this network.');
+        } else {
+          console.log(`✅ Contract code detected (length=${code.length})`);
+        }
+      }).catch((err) => {
+        console.error('❌ Failed to fetch contract code:', err.message);
+      });
     } catch (error) {
       console.error('❌ Blockchain initialization failed:', error.message);
       throw error;
     }
   }
 
-  /**
-   * Get commitment from blockchain
-   */
-  async getCommitment(contestId, gameId, difficulty) {
+    async getCommitment(contestId, gameId, difficulty) {
     try {
       console.log(`🔍 Fetching commitment: contest=${contestId}, game=${gameId}, difficulty=${difficulty}`);
       
@@ -65,10 +74,7 @@ class BlockchainService {
     }
   }
 
-  /**
-   * Record verification on blockchain
-   */
-  async recordVerification(attemptData) {
+    async recordVerification(attemptData) {
     try {
       const {
         contestId,
@@ -88,7 +94,7 @@ class BlockchainService {
         isCorrect
       });
 
-      // Estimate gas first
+      
       const gasEstimate = await this.contract.verifyAttempt.estimateGas(
         contestId,
         playerAddress,
@@ -100,7 +106,7 @@ class BlockchainService {
 
       console.log(`⛽ Gas estimate: ${gasEstimate.toString()}`);
 
-      // Send transaction
+      
       const tx = await this.contract.verifyAttempt(
         contestId,
         playerAddress,
@@ -109,14 +115,14 @@ class BlockchainService {
         attestationSignature || '0x',
         isCorrect,
         {
-          gasLimit: gasEstimate * 120n / 100n // Add 20% buffer
+          gasLimit: gasEstimate * 120n / 100n 
         }
       );
 
       console.log(`⏳ Transaction sent: ${tx.hash}`);
       console.log(`   Waiting for confirmation...`);
 
-      // Wait for transaction to be mined
+      
       const receipt = await tx.wait();
 
       console.log(`✅ Transaction confirmed!`);
@@ -132,7 +138,7 @@ class BlockchainService {
     } catch (error) {
       console.error('❌ Failed to record verification:', error);
       
-      // Parse error message for better debugging
+      
       let errorMessage = error.message;
       if (error.reason) {
         errorMessage = error.reason;
@@ -144,10 +150,7 @@ class BlockchainService {
     }
   }
 
-  /**
-   * Get current gas price
-   */
-  async getGasPrice() {
+    async getGasPrice() {
     const feeData = await this.provider.getFeeData();
     return {
       gasPrice: feeData.gasPrice?.toString(),
@@ -156,10 +159,7 @@ class BlockchainService {
     };
   }
 
-  /**
-   * Get network info
-   */
-  async getNetworkInfo() {
+    async getNetworkInfo() {
     const network = await this.provider.getNetwork();
     const blockNumber = await this.provider.getBlockNumber();
     
@@ -171,10 +171,7 @@ class BlockchainService {
     };
   }
 
-  /**
-   * Check if blockchain connection is healthy
-   */
-  async healthCheck() {
+    async healthCheck() {
     try {
       const blockNumber = await this.provider.getBlockNumber();
       const balance = await this.provider.getBalance(this.wallet.address);
