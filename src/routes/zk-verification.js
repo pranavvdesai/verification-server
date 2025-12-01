@@ -1,4 +1,4 @@
-// src/routes/zk-verification.js
+
 import express from 'express';
 import { zkProver } from '../services/zk-prover.js';
 import { storachaService } from '../services/storacha.js';
@@ -18,9 +18,6 @@ const router = express.Router();
 const EXPLORER_BASE_URL =
   process.env.EXPLORER_BASE_URL || 'https://sepolia.etherscan.io/tx/';
 
-/**
- * Convert UUID string to bytes32 hex (0x-prefixed).
- */
 function uuidToBytes32(uuid) {
   const hex = uuid.replace(/-/g, '');
   if (hex.length !== 32) {
@@ -29,9 +26,6 @@ function uuidToBytes32(uuid) {
   return '0x' + hex.padStart(64, '0');
 }
 
-/**
- * Try uploading to Storacha but do not block the flow if it fails.
- */
 async function safeUploadJSON(label, data, filename) {
   try {
     return await storachaService.uploadJSON(data, filename);
@@ -41,11 +35,6 @@ async function safeUploadJSON(label, data, filename) {
   }
 }
 
-/**
- * Normalize address to a safe format for contract calls.
- * - Returns checksummed address when valid
- * - Falls back to lowercase if checksum casing is bad but hex is valid
- */
 function normalizeAddress(addr) {
   try {
     return ethers.getAddress(addr);
@@ -57,9 +46,6 @@ function normalizeAddress(addr) {
   }
 }
 
-/**
- * Log chain context before sending transactions.
- */
 async function logChainContext(label) {
   const network = await blockchainService.provider.getNetwork();
   console.log(`[Chain] ${label}`);
@@ -85,17 +71,6 @@ async function logReceipt(tx, label) {
   return receipt;
 }
 
-/**
- * POST /create-commitment
- * Generate ZK proof that answer exists (Contest Creation)
- *
- * Body:
- *  - answer        (string)   required
- *  - contestId     (uuid)     required
- *  - gameConfigId  (uuid)     required  ← maps to contest_game_configs.id
- *  - gameId        (int)      optional  ← canonical gameId, used on-chain / for logging
- *  - difficulty    (string)   optional  ← for metadata only (schema stores it on game_config)
- */
 router.post('/create-commitment', async (req, res) => {
   const { answer, gameId, contestId, gameConfigId, difficulty } = req.body;
 
@@ -111,14 +86,14 @@ router.post('/create-commitment', async (req, res) => {
       `Contest: ${contestId}, gameConfigId: ${gameConfigId}, gameId: ${gameId}, difficulty: ${difficulty}`,
     );
 
-    // 1. Generate random salt
+    
     const salt = '0x' + crypto.randomBytes(32).toString('hex');
 
-    // 2. Generate ZK proof
+    
     console.log('\n📐 Generating ZK proof (existence)...');
     const proofResult = await zkProver.proveAnswerExists(answer, salt);
 
-    // 2.1 Verify proof locally
+    
     const existenceValid = await zkProver.verifyProof(
       proofResult.proof,
       'existence',
@@ -129,7 +104,7 @@ router.post('/create-commitment', async (req, res) => {
 
     console.log(`✅ Proof generated in ${proofResult.provingTime}ms`);
 
-    // 3. Create commitment package (for Storacha)
+    
     const commitmentPackage = {
       version: '1.0',
       type: 'answer_existence',
@@ -146,7 +121,7 @@ router.post('/create-commitment', async (req, res) => {
       },
     };
 
-    // 4. Upload to Storacha
+    
     console.log('\n📦 Uploading commitment package to Storacha...');
     const storachaResult = await safeUploadJSON(
       'commitment',
@@ -159,7 +134,7 @@ router.post('/create-commitment', async (req, res) => {
       console.log('⚠️ Storacha upload skipped (continuing without IPFS)');
     }
 
-    // 5. Compute proof hash (for DB + chain)
+    
     const proofHash = ethers.keccak256(proofResult.proofHex);
 
     const saltHint = crypto
@@ -167,7 +142,7 @@ router.post('/create-commitment', async (req, res) => {
       .update(salt)
       .digest('hex');
 
-    // 6. Store in database (game_commitments – new schema)
+    
     await query(
       `
       INSERT INTO game_commitments (
@@ -203,10 +178,10 @@ router.post('/create-commitment', async (req, res) => {
       ],
     );
 
-    // 7. Anchor to blockchain
+    
     console.log('\n⛓️ Anchoring commitment to blockchain...');
     await logChainContext('anchorProof (commitment)');
-    // For commitments we pass attemptId = 0 on-chain
+    
     const tx = await blockchainService.contract.anchorProof(
       uuidToBytes32(contestId),
       gameId ?? 0,
@@ -280,7 +255,7 @@ router.post('/verify-response', async (req, res) => {
     console.log('\n🔍 ===== USER VERIFICATION REQUEST =====');
     console.log(`Attempt ID (UUID): ${attemptIdStr}`);
 
-    // 1. Fetch attempt (new schema: attempts with uuid PK)
+    
     const attempt = await getAttempt(attemptIdStr);
     if (!attempt) {
       return res.status(404).json({ error: 'Attempt not found' });
@@ -294,19 +269,19 @@ router.post('/verify-response', async (req, res) => {
       attemptIndex: attempt.attempt_index,
     });
 
-    // 2. Fetch participant → wallet_address
+    
     const participant = await getParticipant(attempt.participant_id);
     if (!participant) {
       return res.status(404).json({ error: 'Contest participant not found' });
     }
 
-    // 3. Fetch game config → canonical game_id (used on-chain + logging)
+    
     const gameConfig = await getGameConfig(attempt.game_config_id);
     if (!gameConfig) {
       return res.status(404).json({ error: 'Game config not found' });
     }
 
-    // 4. Fetch commitment by (contest_id, game_config_id)
+    
     const commitment = await getCommitment(
       attempt.contest_id,
       attempt.game_config_id,
@@ -345,7 +320,7 @@ router.post('/verify-response', async (req, res) => {
 
     const matches = proofResult.result === 'correct';
 
-    // 6. Create verification package (for Storacha)
+    
     const verificationPackage = {
       version: '1.0',
       type: 'answer_verification',
@@ -368,7 +343,7 @@ router.post('/verify-response', async (req, res) => {
       },
     };
 
-    // 7. Upload to Storacha
+    
     console.log('\n📦 Uploading verification package to Storacha...');
     const storachaResult = await safeUploadJSON(
       'verification',
@@ -381,13 +356,13 @@ router.post('/verify-response', async (req, res) => {
       console.log('⚠️ Storacha upload skipped (continuing without IPFS)');
     }
 
-    // 8. Compute proof hash
+    
     const proofHash = ethers.keccak256(proofResult.proofHex);
 
-    // On-chain attempt ID: use attempt_index (integer per (participant, game_config))
+    
     const onchainAttemptId = attempt.attempt_index;
 
-    // 9. Anchor to blockchain
+    
     console.log('\n⛓️ Anchoring verification to blockchain...');
     await logChainContext('anchorProof (verification)');
     const tx = await blockchainService.contract.anchorProof(
@@ -444,7 +419,7 @@ router.post('/verify-response', async (req, res) => {
 
     console.log('✅ Attempts table updated with verification result');
 
-    // 11. Return result to client
+    
     res.json({
       verified: true,
       attemptId: attemptIdStr,
@@ -483,10 +458,6 @@ router.post('/verify-response', async (req, res) => {
   }
 });
 
-/**
- * GET /proof/:cid
- * Retrieve proof from Storacha
- */
 router.get('/proof/:cid', async (req, res) => {
   const { cid } = req.params;
 

@@ -1,15 +1,15 @@
-// src/services/storacha.js
+
 
 import { create } from '@web3-storage/w3up-client';
 import * as DID from '@ipld/dag-ucan/did';
 import * as Delegation from '@ucanto/core/delegation';
 
-// If you're on Node < 20, uncomment these and install 'node-fetch' & 'web-file-polyfill'
-// import fetch from 'node-fetch';
-// globalThis.fetch = fetch;
-// import { File, Blob } from 'web-file-polyfill';
 
-const SESSION_TIMEOUT_MS = 15 * 60 * 1000; // 15 min "session" like your extension
+
+
+
+
+const SESSION_TIMEOUT_MS = 15 * 60 * 1000; 
 
 let client = null;
 let spaceDid = process.env.STORACHA_SPACE_DID ?? null;
@@ -27,9 +27,6 @@ function isExpired() {
   return Date.now() - lastInitAt > SESSION_TIMEOUT_MS;
 }
 
-/**
- * Small helper to detect hangs on async calls (login/plan.wait).
- */
 async function withTimeout(label, promise, timeoutMs = DEFAULT_STEP_TIMEOUT) {
   let timeout;
   const timer = new Promise((_, reject) => {
@@ -45,10 +42,6 @@ async function withTimeout(label, promise, timeoutMs = DEFAULT_STEP_TIMEOUT) {
   }
 }
 
-/**
- * Initialize the w3up client, log in, and select/create the "zk-proofs" space.
- * This is the server equivalent of your `initClient(email, savedSpaceDid)`.
- */
 async function initClient() {
   console.log(`[Storacha] initClient start @ ${nowTs()}`);
 
@@ -62,7 +55,7 @@ async function initClient() {
   client = await create();
   console.log('[Storacha] Client created');
 
-  // === Login (only once per process / TTL) ===
+  
   console.log('[Storacha] login() starting for', email);
   const account = await withTimeout('client.login', client.login(email));
   console.log('[Storacha] login() resolved; waiting on plan...');
@@ -75,7 +68,7 @@ async function initClient() {
     console.log('[Storacha] Skipping plan.wait because STORACHA_SKIP_PLAN_WAIT=true');
   }
 
-  // === Reuse space if we already have a DID in env ===
+  
   if (savedSpaceDid) {
     spaceDid = savedSpaceDid;
     console.log('[Storacha] Reusing saved spaceDid from env:', spaceDid);
@@ -85,7 +78,7 @@ async function initClient() {
     return spaceDid;
   }
 
-  // === Otherwise, search for an existing "zk-proofs" space ===
+  
   const existingSpaces = [];
   for await (const space of client.spaces()) {
     existingSpaces.push(space);
@@ -98,14 +91,14 @@ async function initClient() {
     console.log('[Storacha] Found existing "zk-proofs" space:', spaceDid);
     await client.setCurrentSpace(spaceDid);
   } else {
-    // === Create new "zk-proofs" space (first-ever boot) ===
+    
     console.log('[Storacha] Creating space "zk-proofs" …');
     const space = await client.createSpace('zk-proofs', { account });
     spaceDid = space.did();
     console.log('[Storacha] Created space:', spaceDid);
     await client.setCurrentSpace(spaceDid);
 
-    // === Create delegation for the agent (exactly like your extension) ===
+    
     const agentDid = client.agent.did();
     console.log('[Storacha] Creating delegation for agent:', agentDid);
 
@@ -138,10 +131,6 @@ async function initClient() {
   return spaceDid;
 }
 
-/**
- * Ensure client + space are ready.
- * This is your server-side `ensureClientReady`.
- */
 async function ensureClientReady() {
   console.log('[Storacha] ensureClientReady');
   if (client && spaceDid && !isExpired()) {
@@ -151,9 +140,6 @@ async function ensureClientReady() {
   await initClient();
 }
 
-/**
- * StorachaService – minimal façade for zk layer
- */
 class StorachaService {
     async initialize() {
         await ensureClientReady();
@@ -162,12 +148,7 @@ class StorachaService {
     return !!client && !!spaceDid && !isExpired();
   }
 
-  /**
-   * Upload arbitrary JSON (proof/commitment) to Storacha.
-   * This is equivalent to your extension's `client.uploadFile(file)`,
-   * but with a server-generated File blob.
-   */
-  async uploadJSON(data, filename = 'proof.json') {
+    async uploadJSON(data, filename = 'proof.json') {
     try {
       await ensureClientReady();
 
@@ -195,11 +176,7 @@ class StorachaService {
     }
   }
 
-  /**
-   * Retrieve JSON back by CID (for /api/zk/proof/:cid).
-   * There's no nice get() in w3up, so we use the public gateway.
-   */
-  async retrieveJSON(cid) {
+    async retrieveJSON(cid) {
     try {
       const url = `https://${cid}.ipfs.w3s.link`;
       console.log('[Storacha] Fetching proof from', url);

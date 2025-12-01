@@ -1,10 +1,10 @@
-// src/db/queries.js
+
 import { query } from './pool.js';
 
-// ============= ATTEMPTS =============
+
 
 export async function getAttempt(attemptId) {
-  // attempts.id is now UUID in the new schema
+  
   const result = await query(
     'SELECT * FROM attempts WHERE id = $1',
     [attemptId],
@@ -12,12 +12,6 @@ export async function getAttempt(attemptId) {
   return result.rows[0];
 }
 
-/**
- * NOTE: This helper still reflects the old verification schema.
- * If you want to use it with the new schema, either:
- *  - delete it, or
- *  - adapt it to write into the new zk_* and verification_metadata columns.
- */
 export async function updateAttemptVerification(attemptId, verificationData) {
   const result = await query(
     `UPDATE attempts 
@@ -40,25 +34,8 @@ export async function updateAttemptVerification(attemptId, verificationData) {
   return result.rows[0];
 }
 
-// ============= GAME COMMITMENTS (new schema) =============
 
-/**
- * Fetch commitment row for a given (contest_id, game_config_id).
- *
- * New table shape:
- *   id UUID PK,
- *   contest_id UUID,
- *   game_config_id UUID,
- *   commitment_hash VARCHAR(66),
- *   answer_plaintext TEXT,
- *   salt_full VARCHAR(66),
- *   salt_hint VARCHAR(66),
- *   storacha_cid VARCHAR(100),
- *   storacha_url TEXT,
- *   proof_hash VARCHAR(66),
- *   anchor_tx_hash VARCHAR(66),
- *   ...
- */
+
 export async function getCommitment(contestId, gameConfigId) {
   const result = await query(
     `
@@ -72,11 +49,8 @@ export async function getCommitment(contestId, gameConfigId) {
   return result.rows[0];
 }
 
-// ============= CONTEST PARTICIPANTS (wallet lookup) =============
 
-/**
- * Fetch participant to get the wallet_address for anchoring on-chain.
- */
+
 export async function getParticipant(participantId) {
   const result = await query(
     `
@@ -89,11 +63,8 @@ export async function getParticipant(participantId) {
   return result.rows[0];
 }
 
-// ============= CONTEST GAME CONFIGS (canonical game_id lookup) =============
 
-/**
- * Fetch game config to get canonical game_id (used by AI + contract).
- */
+
 export async function getGameConfig(gameConfigId) {
   const result = await query(
     `
@@ -106,15 +77,8 @@ export async function getGameConfig(gameConfigId) {
   return result.rows[0];
 }
 
-// ============= VERIFICATION LOGS (old) =============
 
-/**
- * NOTE:
- *   The new schema you shared does NOT have verification_logs.
- *   If you still want an audit trail table, either:
- *     - add verification_logs back to the SQL, or
- *     - delete this helper and all usages.
- */
+
 export async function logVerification(attemptId, status, data = {}) {
   const result = await query(
     `INSERT INTO verification_logs (

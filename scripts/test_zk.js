@@ -16,7 +16,7 @@ import { zkProver } from '../src/services/zk-prover.js';
     const existenceValid = await zkProver.verifyProof(existence.proof, 'existence');
     console.log('Existence proof valid?', existenceValid);
 
-    // Wrong answer
+    
     const wrong = await zkProver.proveAnswerComparison('ALPHA-111', secretAnswer, salt);
     console.log('\n=== Comparison (Wrong) ===');
     console.log('Result:', wrong.result);
@@ -24,7 +24,7 @@ import { zkProver } from '../src/services/zk-prover.js';
     const wrongValid = await zkProver.verifyProof(wrong.proof, 'comparison');
     console.log('Wrong-answer proof valid?', wrongValid);
 
-    // Correct answer
+    
     const correct = await zkProver.proveAnswerComparison('OMEGA-742', secretAnswer, salt);
     console.log('\n=== Comparison (Correct) ===');
     console.log('Result:', correct.result);

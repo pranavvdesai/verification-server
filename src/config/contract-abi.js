@@ -1,4 +1,4 @@
-// src/config/contract-abi.js
+
 
 export const CONTRACT_ABI = [
 	{
