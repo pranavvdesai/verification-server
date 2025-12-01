@@ -123,12 +123,10 @@ class ZKProverService {
     };
 
     try {
-      // 1) Execute Noir circuit → witness + [commitment_hash, user_answer_hash]
       const { witness, returnValue } = await this.answerComparisonCircuit.execute(inputs);
 
       const [commitmentHash, userAnswerHash] = returnValue;
 
-      // 2) Generate proof with UltraHonkBackend
       const proof = await this.comparisonBackend.generateProof(witness);
 
       const duration = Date.now() - startTime;
@@ -136,7 +134,6 @@ class ZKProverService {
         `✅ Comparison proof generated in ${duration}ms (${matches ? 'MATCH' : 'NO MATCH'})`,
       );
 
-      // For on-chain or off-chain consumers you can still export “publicInputs”
       const publicInputs = [commitmentHash, userAnswerHash, matches ? '1' : '0'];
 
       return {
@@ -154,15 +151,6 @@ class ZKProverService {
     }
   }
 
-  /**
-   * Verify a proof given the public inputs.
-   *
-   * UltraHonkBackend API from bb.js:
-   *   const isValid = await backend.verifyProof(proof);
-   *
-   * It already knows the public inputs from the witness / circuit,
-   * so we don't need to pass them separately here.
-   */
   async verifyProof(proof, circuitType = 'comparison') {
     console.log('🔍 Verifying proof...');
 
