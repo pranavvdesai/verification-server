@@ -5,6 +5,9 @@ import cors from 'cors';
 import { config } from './config/index.js';
 import { getPool } from './db/pool.js';
 import verificationRoutes from './routes/verification.js';
+import { storachaService } from './services/storacha.js';
+import zkVerificationRoutes from './routes/zk-verification.js';
+import { zkProver } from './services/zk-prover.js';
 
 const app = express();
  
@@ -21,7 +24,9 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/api', verificationRoutes);
+app.use('/api/zk', zkVerificationRoutes);
 
+console.log('🔐 ZK verification routes mounted at /api/zk');
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
@@ -58,13 +63,30 @@ app.listen(PORT, async () => {
   console.log(`🌍 Environment: ${config.nodeEnv}`);
   console.log(`🔗 Base URL: http://localhost:${PORT}\n`);
   
-  // Test database connection
+  // Test database
   try {
     const pool = getPool();
     await pool.query('SELECT NOW()');
     console.log('✅ Database connected\n');
   } catch (error) {
     console.error('❌ Database connection failed:', error.message, '\n');
+  }
+
+  try {
+    await zkProver.initialize();
+    console.log('✅ ZK Prover initialized\n');
+  } catch (error) {
+    console.error('❌ ZK Prover initialization failed:', error.message);
+    console.error('   Make sure circuits are compiled (nargo compile)\n');
+  }
+  
+  // Initialize Storacha
+  try {
+    await storachaService.initialize();
+    console.log('✅ Storacha initialized\n');
+  } catch (error) {
+    console.error('❌ Storacha initialization failed:', error.message);
+    console.error('   Proofs will not be stored. Check STORACHA_EMAIL in .env\n');
   }
   
   console.log('🚀 ================================');

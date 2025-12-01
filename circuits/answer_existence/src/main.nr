@@ -1,11 +1,24 @@
-fn main(x: u64, y: pub u64) {
-    assert(x != y);
-}
+// src/main.nr  (answer_existence)
 
-#[test]
-fn test_main() {
-    main(1, 2);
+fn main(
+    // Private inputs
+    answer: [Field; 8],
+    salt: Field,
+) -> pub Field {
+    // Combine answer + salt into single array
+    let mut hash_input: [Field; 9] = [0; 9];
 
-    // Uncomment to make test fail
-    // main(1, 1);
+    // Copy answer into positions 0..7
+    for i in 0..8 {
+        hash_input[i] = answer[i];
+    }
+
+    // Put salt in last slot
+    hash_input[8] = salt;
+
+    // Real Pedersen hash from Noir stdlib
+    let commitment_hash = std::hash::pedersen_hash(hash_input);
+
+    // Returning this makes it a *public output*
+    commitment_hash
 }

@@ -32,6 +32,18 @@ class BlockchainService {
       );
       
       console.log(`✅ Smart contract loaded: ${config.contractAddress}`);
+
+      // Sanity: ensure there is bytecode at the configured address
+      this.provider.getCode(config.contractAddress).then((code) => {
+        if (!code || code === '0x') {
+          console.error('❌ No contract code found at address:', config.contractAddress);
+          console.error('   Verify CONTRACT_ADDRESS points to a deployed contract on this network.');
+        } else {
+          console.log(`✅ Contract code detected (length=${code.length})`);
+        }
+      }).catch((err) => {
+        console.error('❌ Failed to fetch contract code:', err.message);
+      });
     } catch (error) {
       console.error('❌ Blockchain initialization failed:', error.message);
       throw error;

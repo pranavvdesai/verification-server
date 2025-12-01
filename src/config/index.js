@@ -14,17 +14,9 @@ export const config = {
   
   // Blockchain
   rpcUrl: process.env.RPC_URL,
-  chainId: parseInt(process.env.CHAIN_ID || '80002'),
+  chainId: parseInt(process.env.CHAIN_ID || '11155111'),
   contractAddress: process.env.CONTRACT_ADDRESS,
   oraclePrivateKey: process.env.ORACLE_PRIVATE_KEY,
-  
-  // IPFS
-  ipfs: {
-    apiUrl: process.env.IPFS_API_URL || 'https://ipfs.infura.io:5001',
-    gateway: process.env.IPFS_GATEWAY || 'https://ipfs.io/ipfs/',
-    projectId: process.env.IPFS_PROJECT_ID,
-    projectSecret: process.env.IPFS_PROJECT_SECRET,
-  },
   
   // Game Server
   gameServerUrl: process.env.GAME_SERVER_URL || 'http://localhost:3000',
