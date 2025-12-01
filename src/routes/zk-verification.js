@@ -30,6 +30,34 @@ function uuidToBytes32(uuid) {
 }
 
 /**
+ * Try uploading to Storacha but do not block the flow if it fails.
+ */
+async function safeUploadJSON(label, data, filename) {
+  try {
+    return await storachaService.uploadJSON(data, filename);
+  } catch (err) {
+    console.error(`[Storacha] ${label} upload failed:`, err.message);
+    return null;
+  }
+}
+
+/**
+ * Normalize address to a safe format for contract calls.
+ * - Returns checksummed address when valid
+ * - Falls back to lowercase if checksum casing is bad but hex is valid
+ */
+function normalizeAddress(addr) {
+  try {
+    return ethers.getAddress(addr);
+  } catch (err) {
+    if (/^0x[0-9a-fA-F]{40}$/.test(addr)) {
+      return addr.toLowerCase();
+    }
+    throw err;
+  }
+}
+
+/**
  * Log chain context before sending transactions.
  */
 async function logChainContext(label) {
@@ -120,12 +148,16 @@ router.post('/create-commitment', async (req, res) => {
 
     // 4. Upload to Storacha
     console.log('\n📦 Uploading commitment package to Storacha...');
-    const storachaResult = await storachaService.uploadJSON(
+    const storachaResult = await safeUploadJSON(
+      'commitment',
       commitmentPackage,
       `commitment-${contestId}-gamecfg-${gameConfigId}.json`,
     );
-
-    console.log(`✅ Uploaded: ${storachaResult.url}`);
+    if (storachaResult) {
+      console.log(`✅ Uploaded: ${storachaResult.url}`);
+    } else {
+      console.log('⚠️ Storacha upload skipped (continuing without IPFS)');
+    }
 
     // 5. Compute proof hash (for DB + chain)
     const proofHash = ethers.keccak256(proofResult.proofHex);
@@ -165,8 +197,8 @@ router.post('/create-commitment', async (req, res) => {
         answer,
         salt,
         saltHint,
-        storachaResult.cid,
-        storachaResult.url,
+        storachaResult?.cid || null,
+        storachaResult?.url || null,
         proofHash,
       ],
     );
@@ -184,7 +216,7 @@ router.post('/create-commitment', async (req, res) => {
       proofResult.commitmentHash,
       ethers.ZeroHash,
       false,
-      storachaResult.cid ?? '',
+      storachaResult?.cid ?? '',
     );
 
     console.log('[Chain] anchorProof (commitment) tx response:', {
@@ -286,8 +318,8 @@ router.post('/verify-response', async (req, res) => {
 
     console.log('🔐 Secret answer & salt loaded from DB (game_commitments)');
 
-    const effectiveUserAnswer =
-      userAnswer ?? attempt.submitted_answer ?? '';
+    const playerAddress = normalizeAddress(participant.wallet_address);
+    const effectiveUserAnswer = userAnswer ?? attempt.submitted_answer ?? '';
 
     // 5. Generate ZK comparison proof
     console.log('\n📐 Generating ZK comparison proof...');
@@ -319,7 +351,7 @@ router.post('/verify-response', async (req, res) => {
       type: 'answer_verification',
       attemptId: attemptIdStr,
       contestId: attempt.contest_id,
-      playerWallet: participant.wallet_address,
+      playerWallet: playerAddress,
       proof: proofResult.proofHex,
       publicInputs: {
         commitmentHash: proofResult.commitmentHash,
@@ -338,11 +370,16 @@ router.post('/verify-response', async (req, res) => {
 
     // 7. Upload to Storacha
     console.log('\n📦 Uploading verification package to Storacha...');
-    const storachaResult = await storachaService.uploadJSON(
+    const storachaResult = await safeUploadJSON(
+      'verification',
       verificationPackage,
       `verification-${attemptIdStr}.json`,
     );
-    console.log(`✅ Uploaded: ${storachaResult.url}`);
+    if (storachaResult) {
+      console.log(`✅ Uploaded: ${storachaResult.url}`);
+    } else {
+      console.log('⚠️ Storacha upload skipped (continuing without IPFS)');
+    }
 
     // 8. Compute proof hash
     const proofHash = ethers.keccak256(proofResult.proofHex);
@@ -356,13 +393,13 @@ router.post('/verify-response', async (req, res) => {
     const tx = await blockchainService.contract.anchorProof(
       uuidToBytes32(attempt.contest_id),
       gameConfig.game_id,
-      participant.wallet_address,
+      playerAddress,
       onchainAttemptId,
       proofHash,
       proofResult.commitmentHash,
       proofResult.userAnswerHash,
       matches,
-      storachaResult.cid ?? '',
+      storachaResult?.cid ?? '',
     );
 
     console.log('[Chain] anchorProof (verification) tx response:', {
@@ -397,7 +434,7 @@ router.post('/verify-response', async (req, res) => {
         proofResult.commitmentHash,
         proofResult.userAnswerHash,
         proofHash,
-        storachaResult.cid,
+        storachaResult?.cid || null,
         onchainAttemptId,
         tx.hash,
         JSON.stringify(verificationPackage),
@@ -418,9 +455,9 @@ router.post('/verify-response', async (req, res) => {
       result: proofResult.result,
       proof: {
         storacha: {
-          cid: storachaResult.cid,
-          url: storachaResult.url,
-          size: storachaResult.size,
+          cid: storachaResult?.cid || null,
+          url: storachaResult?.url || null,
+          size: storachaResult?.size || null,
         },
         proofHash,
         blockchain: {
